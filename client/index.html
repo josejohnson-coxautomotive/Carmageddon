@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>hello phaser!</title>
+        <script src="/phaser.min.js"></script>
+        <script src="http://localhost:8000/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+
+    <script type="text/javascript">
+
+    window.onload = function() {
+
+        //  Note that this html file is set to pull down Phaser 2.5.0 from the JS Delivr CDN.
+        //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
+        //  Be sure to replace it with an updated version before you start experimenting with adding your own code.
+
+        var game = new Phaser.Game(1200, 900, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+
+        function preload () {
+			game.load.image('redCar', 'redCar.png');
+            game.load.image('orangeCar', 'orangeCar.png');
+        }
+
+		var socket;
+        var car;
+        var currentSpeed = 0;
+        var cursors;
+
+		/**************************************************
+		** GAME PLAYER CLASS
+		**************************************************/
+		var Player = function(xPos, yPos, rotationStart) {
+			var id;
+			var car;
+			var x = xPos;
+			var y = yPos;
+			var rotation = rotationStart;
+
+			// Define which variables and methods can be accessed
+			return {
+				id: id,
+				car: car,
+				x: x,
+				y: y,
+				rotation: rotation
+			}
+		};
+
+        // Initialise remote players array
+		remotePlayers = [];
+
+
+
+        function create () {
+			car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
+			car.anchor.setTo(0.5, 0.5);
+
+			car.x = game.world.centerX;
+			car.y = game.world.centerY;
+
+			game.physics.enable(car, Phaser.Physics.ARCADE);
+			car.body.maxVelocity.setTo(400,400);
+			car.body.collideWorldBounds = true;
+
+			cursors = game.input.keyboard.createCursorKeys();
+
+			socket = io.connect("http://localhost:8000", {transports: ["websocket"]});
+
+			// Start listening for events
+			setEventHandlers();
+        }
+
+        function update () {
+            var carTurned = false;
+
+			if (cursors.left.isDown)
+			{
+				car.angle -= 4;
+                carTurned = true;
+			}
+			else if (cursors.right.isDown)
+			{
+				car.angle += 4;
+                carTurned = true;
+			}
+
+			else if (cursors.up.isDown)
+			{
+				//  The speed we will travel at
+				currentSpeed = 300;
+			}
+			else if (cursors.down.isDown)
+			{
+			    currentSpeed = -160;
+			}
+			else {
+			    if (currentSpeed != 0) {
+			      currentSpeed = currentSpeed/1.2;
+			    }
+			}
+
+			if (currentSpeed != 0)
+			{
+				game.physics.arcade.velocityFromRotation(car.rotation, currentSpeed, car.body.velocity);
+			}
+
+			if (currentSpeed != 0 || carTurned) {
+				socket.emit("move player", {x: car.x, y: car.y, rotation: car.rotation});
+			}
+        }
+
+        /**************************************************
+		** GAME EVENT HANDLERS
+		**************************************************/
+		var setEventHandlers = function() {
+
+			// Socket connection successful
+			socket.on("connect", onSocketConnected);
+
+			// Socket disconnection
+			socket.on("disconnect", onSocketDisconnect);
+
+			// New player message received
+			socket.on("new player", onNewPlayer);
+
+			// Player move message received
+			socket.on("move player", onMovePlayer);
+
+			// Player removed message received
+			socket.on("remove player", onRemovePlayer);
+		};
+
+		function onSocketConnected() {
+		    console.log("Connected to socket server");
+
+
+		    // Send local player data to the game server
+			socket.emit("new player", {x: car.x, y: car.y});
+		};
+
+		function onSocketDisconnect() {
+		    console.log("Disconnected from socket server");
+		};
+
+		function onNewPlayer(data) {
+		    console.log("New player connected: "+data.id);
+
+			// Initialise the new player
+			var newPlayer = new Player(data.x, data.y, data.rotation);
+			newPlayer.id = data.id;
+
+			var playerCar = game.add.sprite(data.x, data.y, 'orangeCar');
+			playerCar.anchor.setTo(0.5, 0.5);
+
+			playerCar.x = data.x;
+			playerCar.y = data.y;
+
+			playerCar.rotation = data.rotation;
+
+			game.physics.enable(playerCar, Phaser.Physics.ARCADE);
+			playerCar.body.maxVelocity.setTo(400,400);
+			playerCar.body.collideWorldBounds = true;
+
+			newPlayer.car = playerCar;
+
+			// Add new player to the remote players array
+			remotePlayers.push(newPlayer);
+		};
+
+		function onMovePlayer(data) {
+			var movePlayer = playerById(data.id);
+
+			// Player not found
+			if (!movePlayer) {
+				console.log("Player not found: "+data.id);
+				return;
+			};
+
+			movePlayer.x = data.x;
+			movePlayer.y = data.y;
+			movePlayer.rotation = data.rotation;
+
+			// Update player position
+			movePlayer.car.x = data.x;
+			movePlayer.car.y = data.y;
+			movePlayer.car.rotation = data.rotation;
+		};
+
+		function onRemovePlayer(data) {
+			var removePlayer = playerById(data.id);
+
+			// Player not found
+			if (!removePlayer) {
+				console.log("Player not found: "+data.id);
+				return;
+			};
+
+			// Remove player from array
+			remotePlayers.splice(remotePlayers.indexOf(removePlayer), 1);
+		};
+
+		// Find player by ID
+		function playerById(id) {
+			var i;
+			for (i = 0; i < remotePlayers.length; i++) {
+				if (remotePlayers[i].id == id)
+					return remotePlayers[i];
+			};
+
+			return false;
+		};
+
+    };
+
+    </script>
+
+    </body>
+</html>
