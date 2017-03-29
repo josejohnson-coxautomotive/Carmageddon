@@ -19,8 +19,11 @@
         var game = new Phaser.Game(1200, 900, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
         function preload () {
+			game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
+
 			game.load.image('redCar', 'redCar.png');
             game.load.image('orangeCar', 'orangeCar.png');
+
         }
 
 		var socket;
@@ -54,7 +57,10 @@
 
 
         function create () {
-			car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
+			car = game.add.sprite(game.world.centerX,game.world.centerY, 'gameSprites');
+			car.frame = 1;
+
+			//car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
 			car.anchor.setTo(0.5, 0.5);
 
 			car.x = game.world.centerX;
@@ -151,7 +157,10 @@
 			var newPlayer = new Player(data.x, data.y, data.rotation);
 			newPlayer.id = data.id;
 
-			var playerCar = game.add.sprite(data.x, data.y, 'orangeCar');
+			var playerCar = game.add.sprite(data.x, data.y, 'gameSprites');
+			playerCar.frame = 0;
+
+			//var playerCar = game.add.sprite(data.x, data.y, 'orangeCar');
 			playerCar.anchor.setTo(0.5, 0.5);
 
 			playerCar.x = data.x;
