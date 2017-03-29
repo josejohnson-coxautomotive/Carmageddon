@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>hello phaser!</title>
+        <title>Carmageddon</title>
         <script src="/phaser.min.js"></script>
         <script src="http://localhost:8000/socket.io/socket.io.js"></script>
     </head>
@@ -31,6 +31,9 @@
         var currentSpeed = 0;
         var cursors;
 
+        var tileWidth = 75;
+        var tileHeight = 57;
+
 		/**************************************************
 		** GAME PLAYER CLASS
 		**************************************************/
@@ -57,6 +60,14 @@
 
 
         function create () {
+            for (var i=0; i<16; i++) {
+                for (var j=0; j<16; j++) {
+                    var tile = tile = game.add.sprite(i*tileWidth,j*tileHeight,'gameSprites');
+                    //tile.frame = j*16+i;
+                    tile.frame = 65;
+                }
+            }
+
 			car = game.add.sprite(game.world.centerX,game.world.centerY, 'gameSprites');
 			car.frame = 1;
 
