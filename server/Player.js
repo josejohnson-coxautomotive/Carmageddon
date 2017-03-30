@@ -1,10 +1,11 @@
 /**************************************************
 ** GAME PLAYER CLASS
 **************************************************/
-var Player = function(startX, startY, startRotation) {
-	var x = startX,
-		y = startY,
-		rotation = startRotation,
+var Player = function() {
+	var x = 0,
+		y = 0,
+		frame = 0,
+		rotation = 0,
 		id;
 
 
@@ -13,7 +14,8 @@ var Player = function(startX, startY, startRotation) {
 		x: x,
 		y: y,
 		rotation: rotation,
-		id: id
+		id: id,
+		frame: frame
 	}
 };
 

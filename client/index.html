@@ -1,277 +1,232 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="UTF-8" />
-        <title>Carmageddon</title>
-        <script src="/phaser.min.js"></script>
-        <script src="http://localhost:8000/socket.io/socket.io.js"></script>
-    </head>
-    <body>
+<head>
+    <meta charset="UTF-8" />
+    <title>Carmageddon</title>
+    <script src="/phaser.min.js"></script>
+    <script src="http://localhost:8000/socket.io/socket.io.js"></script>
+</head>
+<body>
 
-    <script type="text/javascript">
-		var head = document.getElementsByTagName('head')[0];
-		var script = document.createElement('script');
-		script.type = 'text/javascript';
-		script.src = 'http://'+location.hostname+':8000/socket.io/socket.io.js';
-		head.appendChild(script);
+<script type="text/javascript">
+    var head = document.getElementsByTagName('head')[0];
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'http://'+location.hostname+':8000/socket.io/socket.io.js';
+    head.appendChild(script);
 
-		window.onload = function() {
+    window.onload = function() {
 
-        //  Note that this html file is set to pull down Phaser 2.5.0 from the JS Delivr CDN.
-        //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
-        //  Be sure to replace it with an updated version before you start experimenting with adding your own code.
+        //  States
 
-        var game = new Phaser.Game(1200, 900, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+        var socket;
+        var myCar;
+        var otherCar;
 
-        function preload () {
-			game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
+        var myCarSprite;
+        var otherCarSprite;
 
-			game.load.image('redCar', 'redCar.png');
-            game.load.image('orangeCar', 'orangeCar.png');
-
-        }
-
-		var socket;
-        var car;
-        var currentSpeed = 0;
-        var cursors;
+        var map1 = [97, 161, 161, 130, 161, 161, 130, 161, 161, 162, 66, 66, 66, 66, 66, 66, 146, 3, 4, 146, 6, 7, 146, 9, 10, 146, 66, 66, 66, 66, 66, 66, 146, 19, 20, 146, 22, 23, 146, 25, 26, 146, 66, 66, 66, 66, 66, 66, 178, 161, 161, 98, 130, 161, 98, 161, 130, 98, 161, 161, 162, 66, 66, 66, 146, 35, 36, 37, 146, 38, 39, 40, 146, 41, 42, 43, 146, 66, 66, 66, 146, 51, 52, 53, 146, 54, 55, 56, 146, 57, 58, 59, 178, 161, 162, 66, 146, 67, 68, 69, 146, 70, 71, 72, 146, 73, 74, 75, 146, 66, 146, 66, 178, 161, 161, 130, 98, 161, 130, 161, 98, 130, 161, 161, 177, 66, 146, 66, 146, 83, 84, 146, 86, 87, 146, 89, 90, 146, 66, 66, 66, 97, 98, 162, 146, 99, 100, 146, 102, 103, 146, 105, 106, 146, 66, 66, 66, 146, 210, 146, 146, 115, 116, 146, 118, 119, 146, 121, 122, 146, 66, 66, 66, 129, 161, 177, 178, 161, 161, 98, 130, 161, 98, 161, 130, 98, 161, 161, 162, 66, 66, 66, 146, 131, 132, 133, 146, 134, 135, 136, 146, 137, 138, 139, 146, 66, 66, 66, 146, 147, 148, 149, 146, 150, 151, 152, 146, 153, 154, 155, 146, 66, 66, 66, 146, 163, 164, 165, 146, 166, 167, 168, 146, 169, 170, 171, 146, 66, 66, 66, 146, 179, 180, 181, 146, 182, 183, 184, 146, 185, 186, 187, 146, 66, 66, 66];
 
         var tileWidth = 75;
         var tileHeight = 57;
         var mapHeight = 16;
         var mapWidth = 16;
-
         var grassFrame = 65;
 
-		/**************************************************
-		** GAME PLAYER CLASS
-		**************************************************/
-		var Player = function(xPos, yPos, rotationStart) {
-			var id;
-			var car;
-			var x = xPos;
-			var y = yPos;
-			var rotation = rotationStart;
-
-			// Define which variables and methods can be accessed
-			return {
-				id: id,
-				car: car,
-				x: x,
-				y: y,
-				rotation: rotation
-			}
-		};
-
-        // Initialise remote players array
-		remotePlayers = [];
-
-		//KEY
-		//65 - GRASS
-
-		//ROADS
-		//145 HORIZONTAL
-		//160 VERTICAL
-
-		//96 TURN SOUTH TO EAST
-		//161 TURN NORTH TO EAST
-		//128 TURN SOUTH TO WEST
-		//176 TURN NORTH TO WEST
-
-        //building information - for different sprite action
-		var steelIndexes = [2,3,18,19,34,35,36,50,51,52,66,67,68,82,83,98,99,114,115,130,131,132,146,147,148,162,163,164178,179,180];
-        var woodIndexes = [5,6,21,22,37,38,39,53,54,55,69,70,71,85,86,101,102,117,118,133,134,135,149,150,151,165,166,167,181,182,183];
-		var brickIndexes = [8,9,24,25,40,41,42,56,67,68,72,73,74,88,89,104,105,120,121,136,137,138,152,153,154,168,169,170,184,185,186];
-
-
-        //NOTE - all keys here are one over actual frame index value
-        var map1 = [97, 161, 161, 130, 161, 161, 130, 161, 161, 162, 66, 66, 66, 66, 66, 66, 146, 3, 4, 146, 6, 7, 146, 9, 10, 146, 66, 66, 66, 66, 66, 66, 146, 19, 20, 146, 22, 23, 146, 25, 26, 146, 66, 66, 66, 66, 66, 66, 178, 161, 161, 98, 130, 161, 98, 161, 130, 98, 161, 161, 162, 66, 66, 66, 146, 35, 36, 37, 146, 38, 39, 40, 146, 41, 42, 43, 146, 66, 66, 66, 146, 51, 52, 53, 146, 54, 55, 56, 146, 57, 58, 59, 178, 161, 162, 66, 146, 67, 68, 69, 146, 70, 71, 72, 146, 73, 74, 75, 146, 66, 146, 66, 178, 161, 161, 130, 98, 161, 130, 161, 98, 130, 161, 161, 177, 66, 146, 66, 146, 83, 84, 146, 86, 87, 146, 89, 90, 146, 66, 66, 66, 97, 98, 162, 146, 99, 100, 146, 102, 103, 146, 105, 106, 146, 66, 66, 66, 146, 210, 146, 146, 115, 116, 146, 118, 119, 146, 121, 122, 146, 66, 66, 66, 129, 161, 177, 178, 161, 161, 98, 130, 161, 98, 161, 130, 98, 161, 161, 162, 66, 66, 66, 146, 131, 132, 133, 146, 134, 135, 136, 146, 137, 138, 139, 146, 66, 66, 66, 146, 147, 148, 149, 146, 150, 151, 152, 146, 153, 154, 155, 146, 66, 66, 66, 146, 163, 164, 165, 146, 166, 167, 168, 146, 169, 170, 171, 146, 66, 66, 66, 146, 179, 180, 181, 146, 182, 183, 184, 146, 185, 186, 187, 146, 66, 66, 66];
-
-        function create () {
-            for (var y=0; y<mapHeight; y++) {
-                for (var x=0; x<mapWidth; x++) {
-                    var frame = map1[x+y*mapWidth]-1;
-
-                    //if item is not grass - draw grass under it.
-                    if (frame!=grassFrame) {
-                        var grassTile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
-                        grassTile.frame = grassFrame;
-                    }
-
-                    var tile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
-                    tile.frame = map1[x+y*mapWidth]-1; //minus 1 since tool increases indexes by 1
-
-                }
-            }
-
-			car = game.add.sprite(game.world.centerX,game.world.centerY, 'gameSprites');
-			car.frame = 1;
-
-			//car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
-			car.anchor.setTo(0.5, 0.5);
-
-			car.x = game.world.centerX;
-			car.y = game.world.centerY;
-
-			game.physics.enable(car, Phaser.Physics.ARCADE);
-			car.body.maxVelocity.setTo(400,400);
-			car.body.collideWorldBounds = true;
-
-			cursors = game.input.keyboard.createCursorKeys();
-
-			socket = io.connect("http://"+location.hostname+":8000", {transports: ["websocket"]});
-
-			// Start listening for events
-			setEventHandlers();
-        }
-
-
-        function update () {
-            var carTurned = false;
-
-			if (cursors.left.isDown)
-			{
-				car.angle -= 4;
-                carTurned = true;
-			}
-			else if (cursors.right.isDown)
-			{
-				car.angle += 4;
-                carTurned = true;
-			}
-
-			else if (cursors.up.isDown)
-			{
-				//  The speed we will travel at
-				currentSpeed = 300;
-			}
-			else if (cursors.down.isDown)
-			{
-			    currentSpeed = -160;
-			}
-			else {
-			    if (currentSpeed != 0) {
-			      currentSpeed = currentSpeed/1.2;
-			    }
-			}
-
-			if (currentSpeed != 0)
-			{
-				game.physics.arcade.velocityFromRotation(car.rotation, currentSpeed, car.body.velocity);
-			}
-
-			if (currentSpeed != 0 || carTurned) {
-				socket.emit("move player", {x: car.x, y: car.y, rotation: car.rotation});
-			}
-        }
+        var currentSpeed = 0;
 
         /**************************************************
-		** GAME EVENT HANDLERS
-		**************************************************/
-		var setEventHandlers = function() {
+         ** GAME PLAYER CLASS
+         **************************************************/
+        var Player = function(xPos, yPos, rotationStart, frame) {
+            var id;
+            var car;
+            var x = xPos;
+            var y = yPos;
+            var rotation = rotationStart;
+            var frame = frame;
 
-			// Socket connection successful
-			socket.on("connect", onSocketConnected);
+            // Define which variables and methods can be accessed
+            return {
+                id: id,
+                car: car,
+                x: x,
+                y: y,
+                rotation: rotation,
+                frame: frame
+            }
+        };
 
-			// Socket disconnection
-			socket.on("disconnect", onSocketDisconnect);
+        var boot = function(game) {}
 
-			// New player message received
-			socket.on("new player", onNewPlayer);
+        boot.prototype = {
+            preload: function() {
+                this.game.load.image("splash","splash-screen.jpg");
+                this.game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
+            },
+            create: function() {
+                socket = io.connect("http://"+location.hostname+":8000", {transports: ["websocket"]});
 
-			// Player move message received
-			socket.on("move player", onMovePlayer);
+                // Socket connection successful
+                socket.on("connect", function(){
+                    console.log("Connected to socket server");
+                });
 
-			// Player removed message received
-			socket.on("remove player", onRemovePlayer);
-		};
+                // Socket disconnection
+                socket.on("disconnect", function() {
+                    console.log("Disconnected from socket server");
+                });
 
-		function onSocketConnected() {
-		    console.log("Connected to socket server");
+                socket.on("starting info", function(data) {
+                    myCar = new Player(data.x, data.y, data.rotation, data.frame);
+                    myCar.id = data.id;
+                });
 
+                // New player message received
+                socket.on("new player", function(data) {
+                    otherCar = new Player(data.x, data.y, data.rotation, data.frame);
+                    otherCar.id = data.id;
 
-		    // Send local player data to the game server
-			socket.emit("new player", {x: car.x, y: car.y});
-		};
+                    game.state.start("TheGame");
+                });
 
-		function onSocketDisconnect() {
-		    console.log("Disconnected from socket server");
-		};
+                socket.on("move player", function(data) {
+                    // Update player position
+                    otherCarSprite.x = data.x;
+                    otherCarSprite.y = data.y;
+                    otherCarSprite.rotation = data.rotation;
+                });
 
-		function onNewPlayer(data) {
-		    console.log("New player connected: "+data.id);
+                this.game.state.start("Splash");
+            }
+        }
 
-			// Initialise the new player
-			var newPlayer = new Player(data.x, data.y, data.rotation);
-			newPlayer.id = data.id;
+        var splash = function(game) {}
 
-			var playerCar = game.add.sprite(data.x, data.y, 'gameSprites');
-			playerCar.frame = 0;
+        splash.prototype = {
+            create: function() {
 
-			//var playerCar = game.add.sprite(data.x, data.y, 'orangeCar');
-			playerCar.anchor.setTo(0.5, 0.5);
+                var splashImage = this.game.add.button(game.world.centerX, game.world.centerY, "splash",this.connect,this);
+                splashImage.anchor.setTo(0.5, 0.5);
+            },
+            connect: function() {
+                this.game.state.start("WaitingToConnect");
+            }
+        }
 
-			playerCar.x = data.x;
-			playerCar.y = data.y;
+        var waitingToConnect = function(game) {}
 
-			playerCar.rotation = data.rotation;
+        waitingToConnect.prototype = {
+            create: function() {
+                var text = game.add.text(game.world.centerX, game.world.centerY, "Waiting for game to start", { font: "65px Arial", fill: "#ffffff", align: "center" });
+                text.anchor.set(0.5);
 
-			game.physics.enable(playerCar, Phaser.Physics.ARCADE);
-			playerCar.body.maxVelocity.setTo(400,400);
-			playerCar.body.collideWorldBounds = true;
+                socket.emit("new player",{});
+            }
+        }
 
-			newPlayer.car = playerCar;
+        var theGame = function(game) {}
 
-			// Add new player to the remote players array
-			remotePlayers.push(newPlayer);
-		};
+        theGame.prototype = {
+            create: function() {
+                for (var y=0; y<mapHeight; y++) {
+                    for (var x=0; x<mapWidth; x++) {
+                        var frame = map1[x+y*mapWidth]-1;
 
-		function onMovePlayer(data) {
-			var movePlayer = playerById(data.id);
+                        //if item is not grass - draw grass under it.
+                        if (frame!=grassFrame) {
+                            var grassTile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
+                            grassTile.frame = grassFrame;
+                        }
 
-			// Player not found
-			if (!movePlayer) {
-				console.log("Player not found: "+data.id);
-				return;
-			};
+                        var tile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
+                        tile.frame = map1[x+y*mapWidth]-1; //minus 1 since tool increases indexes by 1
+                    }
+                }
 
-			movePlayer.x = data.x;
-			movePlayer.y = data.y;
-			movePlayer.rotation = data.rotation;
+                //my car
+                myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
+                myCarSprite.frame = myCar.frame;
 
-			// Update player position
-			movePlayer.car.x = data.x;
-			movePlayer.car.y = data.y;
-			movePlayer.car.rotation = data.rotation;
-		};
+                //car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
+                myCarSprite.anchor.setTo(0.5, 0.5);
 
-		function onRemovePlayer(data) {
-			var removePlayer = playerById(data.id);
+                myCarSprite.x = myCar.x;
+                myCarSprite.y = myCar.y;
 
-			// Player not found
-			if (!removePlayer) {
-				console.log("Player not found: "+data.id);
-				return;
-			};
+                game.physics.enable(myCarSprite, Phaser.Physics.ARCADE);
+                myCarSprite.body.maxVelocity.setTo(400,400);
+                myCarSprite.body.collideWorldBounds = true;
 
-			// Remove player from array
-			remotePlayers.splice(remotePlayers.indexOf(removePlayer), 1);
-		};
+                //otherCar
+                otherCarSprite = game.add.sprite(otherCar.x,otherCar.y, 'gameSprites');
+                otherCarSprite.frame = otherCar.frame;
 
-		// Find player by ID
-		function playerById(id) {
-			var i;
-			for (i = 0; i < remotePlayers.length; i++) {
-				if (remotePlayers[i].id == id)
-					return remotePlayers[i];
-			};
+                //car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
+                otherCarSprite.anchor.setTo(0.5, 0.5);
 
-			return false;
-		};
+                otherCarSprite.x = otherCar.x;
+                otherCarSprite.y = otherCar.y;
+
+                game.physics.enable(otherCarSprite, Phaser.Physics.ARCADE);
+                otherCarSprite.body.maxVelocity.setTo(400,400);
+                otherCarSprite.body.collideWorldBounds = true;
+
+                cursors = game.input.keyboard.createCursorKeys();
+            },
+            update: function() {
+                var carTurned = false;
+
+                if (cursors.left.isDown)
+                {
+                    myCarSprite.angle -= 4;
+                    carTurned = true;
+                }
+                else if (cursors.right.isDown)
+                {
+                    myCarSprite.angle += 4;
+                    carTurned = true;
+                }
+
+                else if (cursors.up.isDown)
+                {
+                    //  The speed we will travel at
+                    currentSpeed = 300;
+                }
+                else if (cursors.down.isDown)
+                {
+                    currentSpeed = -160;
+                }
+                else {
+                    if (currentSpeed != 0) {
+                        currentSpeed = currentSpeed/1.2;
+                    }
+                }
+
+                if (currentSpeed != 0)
+                {
+                    game.physics.arcade.velocityFromRotation(myCarSprite.rotation, currentSpeed, myCarSprite.body.velocity);
+                }
+
+                if (currentSpeed != 0 || carTurned) {
+                    socket.emit("move player", {x: myCarSprite.x, y: myCarSprite.y, rotation: myCarSprite.rotation});
+                }
+            }
+        }
+
+        var game = new Phaser.Game(1200, 912, Phaser.AUTO, 'game');
+
+        game.state.add("Boot", boot);
+        game.state.add("Splash",splash);
+        game.state.add("WaitingToConnect",waitingToConnect);
+        game.state.add("TheGame",theGame);
+//        game.state.add("GameOver",gameOver);
+        game.state.start("Boot");
 
     };
 
-    </script>
+</script>
 
-    </body>
+</body>
 </html>

@@ -72,18 +72,44 @@ function onClientDisconnect() {
 
 // New player has joined
 function onNewPlayer(data) {
-	// Create a new player
-	var newPlayer = new Player(data.x, data.y, data.rotation);
-	newPlayer.id = this.id;
+	util.log('new Player Called');
+	if (players.length > 2) {
+		return;
+	}
 
+	var newPlayer = new Player();
+	//first player
+	if (players.length==0) {
+		console.log('adding player 1');
+		newPlayer.x = 100;
+		newPlayer.y = 100;
+		newPlayer.rotation = 0;
+		newPlayer.frame = 0;
+		newPlayer.id = this.id;
+	} else {
+		console.log('adding player 2');
+		newPlayer.x = 800;
+		newPlayer.y = 800;
+		newPlayer.rotation = 0;
+		newPlayer.frame = 1;
+		newPlayer.id = this.id;
+	}
+
+    util.log("send back new player info - "+newPlayer.frame);
 	// Broadcast new player to connected socket clients
-	this.broadcast.emit("new player", {id: newPlayer.id, x: newPlayer.x, y: newPlayer.y, rotation: newPlayer.rotation});
+	this.broadcast.emit("new player", {id: newPlayer.id, x: newPlayer.x, y: newPlayer.y, rotation: newPlayer.rotation, frame: newPlayer.frame});
+
+
+    util.log("send new player info to other players - "+newPlayer.frame);
+	this.emit("starting info", {id: newPlayer.id, x: newPlayer.x, y: newPlayer.y, rotation: newPlayer.rotation, frame: newPlayer.frame});
+
 
 	// Send existing players to the new player
 	var i, existingPlayer;
 	for (i = 0; i < players.length; i++) {
 		existingPlayer = players[i];
-		this.emit("new player", {id: existingPlayer.id, x: existingPlayer.x, y: existingPlayer.y, rotation: existingPlayer.rotation});
+        util.log("send existing player info to new player - "+existingPlayer.frame);
+		this.emit("new player", {id: existingPlayer.id, x: existingPlayer.x, y: existingPlayer.y, rotation: existingPlayer.rotation, frame: existingPlayer.frame});
 	};
 
 	// Add new player to the players array
