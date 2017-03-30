@@ -17,8 +17,26 @@
 
     window.onload = function() {
 
-        //  States
+        //Constants
+        var tileWidth = 75;
+        var tileHeight = 57;
+        var mapHeight = 16;
+        var mapWidth = 16;
 
+        //frame id's for reference
+        var grassFrame = 65;
+
+        //actual frame numbers for hazards
+        var waterHazard = 192;
+        var potholeHazard = 193;
+        var gravelHazard = 208;
+
+
+        //Tweakable Constants
+        var potholeTime = 3;
+        var potholeImmunityTime = 5;
+
+        //  States
         var socket;
         var myCar;
         var otherCar;
@@ -27,18 +45,6 @@
         var otherCarSprite;
 
         var hazardsMap =  new Array(256);
-
-
-        var tileWidth = 75;
-        var tileHeight = 57;
-        var mapHeight = 16;
-        var mapWidth = 16;
-        var grassFrame = 65;
-
-        //actual frame numbers for hazards
-        var waterHazard = 192;
-        var potholeHazard = 193;
-        var gravelHazard = 208;
 
         //initialize array as 0.
         for (var i=0;i<256;i++) {
@@ -67,6 +73,8 @@
             var y = yPos;
             var rotation = rotationStart;
             var frame = frame;
+            var pothole = false;
+            var potholeImmunity = false;
 
             // Define which variables and methods can be accessed
             return {
@@ -75,9 +83,27 @@
                 x: x,
                 y: y,
                 rotation: rotation,
-                frame: frame
+                frame: frame,
+                pothole: pothole,
+                potholeImmunity: potholeImmunity
             }
         };
+
+        function calculateCarPos(car) {
+            var x = parseInt(car.x/75);
+            var y = parseInt(car.y/57);
+
+            return (x+y*mapWidth);
+        }
+
+        //hazard functions
+        function clearPothole() {
+            myCar.pothole = false;
+        }
+
+        function clearPotholeImmunity() {
+            myCar.potholeImmunity = false;
+        }
 
         var boot = function(game) {}
 
@@ -219,12 +245,17 @@
 
                 else if (cursors.up.isDown)
                 {
-                    //  The speed we will travel at
-                    currentSpeed = 300;
+                    if (!myCar.pothole) {
+                        //  The speed we will travel at
+                        currentSpeed = 300;
+                    }
                 }
                 else if (cursors.down.isDown)
                 {
-                    currentSpeed = -160;
+                    if (!myCar.pothole) {
+                        //  The speed we will travel at
+                        currentSpeed = -160;
+                    }
                 }
                 else {
                     if (currentSpeed != 0) {
@@ -232,10 +263,20 @@
                     }
                 }
 
-                if (currentSpeed != 0)
-                {
-                    game.physics.arcade.velocityFromRotation(myCarSprite.rotation, currentSpeed, myCarSprite.body.velocity);
+                if (hazardsMap[calculateCarPos(myCarSprite)]) {
+                    var hazard = hazardsMap[calculateCarPos(myCarSprite)];
+
+                    if (hazard == potholeHazard && myCar.potholeImmunity == false) {
+                        currentSpeed = 0;
+                        myCar.pothole = true;
+                        myCar.potholeImmunity = true;
+
+                        game.time.events.add(Phaser.Timer.SECOND*potholeTime, clearPothole, this);
+                        game.time.events.add(Phaser.Timer.SECOND*potholeImmunityTime, clearPotholeImmunity, this);
+                    }
                 }
+
+                game.physics.arcade.velocityFromRotation(myCarSprite.rotation, currentSpeed, myCarSprite.body.velocity);
 
                 if (currentSpeed != 0 || carTurned) {
                     socket.emit("move player", {x: myCarSprite.x, y: myCarSprite.y, rotation: myCarSprite.rotation});
