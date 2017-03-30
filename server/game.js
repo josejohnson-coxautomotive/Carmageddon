@@ -81,15 +81,15 @@ function onNewPlayer(data) {
 	//first player
 	if (players.length==0) {
 		console.log('adding player 1');
-		newPlayer.x = 100;
-		newPlayer.y = 100;
+		newPlayer.x = 30;
+		newPlayer.y = 20;
 		newPlayer.rotation = 0;
 		newPlayer.frame = 0;
 		newPlayer.id = this.id;
 	} else {
 		console.log('adding player 2');
-		newPlayer.x = 800;
-		newPlayer.y = 800;
+		newPlayer.x = 1170;
+		newPlayer.y = 570;
 		newPlayer.rotation = 0;
 		newPlayer.frame = 1;
 		newPlayer.id = this.id;
