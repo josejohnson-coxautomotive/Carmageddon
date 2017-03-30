@@ -33,8 +33,14 @@
 
 
         //Tweakable Constants
+        var waterTime = 3;
+        var waterImmunityTime = 5;
+
         var potholeTime = 3;
         var potholeImmunityTime = 5;
+
+        var gravelTime = 3;
+        var gravelImmunityTime = 5;
 
         //  States
         var socket;
@@ -73,8 +79,12 @@
             var y = yPos;
             var rotation = rotationStart;
             var frame = frame;
+            var water = false;
+            var waterImmunity = false;
             var pothole = false;
             var potholeImmunity = false;
+            var gravel = false;
+            var gravelImmunity = false;
 
             // Define which variables and methods can be accessed
             return {
@@ -84,8 +94,12 @@
                 y: y,
                 rotation: rotation,
                 frame: frame,
+                water: water,
+                waterImmunity: waterImmunity,
                 pothole: pothole,
-                potholeImmunity: potholeImmunity
+                potholeImmunity: potholeImmunity,
+                gravel: gravel,
+                gravelImmunity: gravelImmunity
             }
         };
 
@@ -97,12 +111,28 @@
         }
 
         //hazard functions
+        function clearWater() {
+            myCar.water = false;
+        }
+
+        function clearWaterImmunity() {
+            myCar.waterImmunity = false;
+        }
+
         function clearPothole() {
             myCar.pothole = false;
         }
 
         function clearPotholeImmunity() {
             myCar.potholeImmunity = false;
+        }
+
+        function clearGravel() {
+            myCar.gravel = false;
+        }
+
+        function clearGravelImmunity() {
+            myCar.gravelImmunity = false;
         }
 
         var boot = function(game) {}
@@ -263,8 +293,24 @@
                     }
                 }
 
+                if (myCar.gravel) {
+                    currentSpeed = currentSpeed/2;
+                }
+
+                if (myCar.water) {
+                    myCarSprite.angle += 10;
+                }
+
                 if (hazardsMap[calculateCarPos(myCarSprite)]) {
                     var hazard = hazardsMap[calculateCarPos(myCarSprite)];
+
+                    if (hazard == waterHazard && myCar.waterImmunity == false) {
+                        myCar.water = true;
+                        myCar.waterImmunity = true;
+
+                        game.time.events.add(Phaser.Timer.SECOND*waterTime, clearWater, this);
+                        game.time.events.add(Phaser.Timer.SECOND*waterImmunityTime, clearWaterImmunity, this);
+                    }
 
                     if (hazard == potholeHazard && myCar.potholeImmunity == false) {
                         currentSpeed = 0;
@@ -273,6 +319,14 @@
 
                         game.time.events.add(Phaser.Timer.SECOND*potholeTime, clearPothole, this);
                         game.time.events.add(Phaser.Timer.SECOND*potholeImmunityTime, clearPotholeImmunity, this);
+                    }
+
+                    if (hazard == gravelHazard && myCar.gravelImmunity == false) {
+                        myCar.gravel = true;
+                        myCar.gravelImmunity = true;
+
+                        game.time.events.add(Phaser.Timer.SECOND*gravelTime, clearGravel, this);
+                        game.time.events.add(Phaser.Timer.SECOND*gravelImmunityTime, clearGravelImmunity, this);
                     }
                 }
 
