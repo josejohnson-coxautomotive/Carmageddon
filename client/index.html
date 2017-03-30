@@ -9,8 +9,13 @@
     <body>
 
     <script type="text/javascript">
+		var head = document.getElementsByTagName('head')[0];
+		var script = document.createElement('script');
+		script.type = 'text/javascript';
+		script.src = 'http://'+location.hostname+':8000/socket.io/socket.io.js';
+		head.appendChild(script);
 
-    window.onload = function() {
+		window.onload = function() {
 
         //  Note that this html file is set to pull down Phaser 2.5.0 from the JS Delivr CDN.
         //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
@@ -114,7 +119,7 @@
 
 			cursors = game.input.keyboard.createCursorKeys();
 
-			socket = io.connect("http://localhost:8000", {transports: ["websocket"]});
+			socket = io.connect("http://"+location.hostname+":8000", {transports: ["websocket"]});
 
 			// Start listening for events
 			setEventHandlers();
