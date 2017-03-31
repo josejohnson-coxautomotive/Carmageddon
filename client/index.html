@@ -200,9 +200,9 @@
                     bulletTime = game.time.now + bulletCooldownTime;
 
                     var gunshotAudio = game.add.audio('gunshot');
-                    splashMusic.volume = 1.0;
+                    gunshotAudio.volume = 1.0;
                     if (sound) {
-                        splashMusic.play();
+                        gunshotAudio.play();
                     }
 
                     bullet.events.onKilled.add(function() {this.x=0;this.y=0;this.visible =false;},this);
@@ -260,6 +260,12 @@
                 text.anchor.set(0.5);
 
                 gameOver = true;
+
+                var carBoom = game.add.audio('carBoom');
+                carBoom.volume = 1.0;
+                if (sound) {
+                    carBoom.play();
+                }
 
                 gameMusic.loop = false;
                 gameMusic.stop();
