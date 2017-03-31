@@ -6,8 +6,6 @@
     <script src="/phaser.min.js"></script>
     <script src="http://localhost:8000/socket.io/socket.io.js"></script>
 </head>
-<body>
-
 <script type="text/javascript">
     var head = document.getElementsByTagName('head')[0];
     var script = document.createElement('script');
@@ -45,6 +43,7 @@
 
         var buildingIndexes = steelIndexes.concat(woodIndexes).concat(brickIndexes);
         var blockingIndexes = buildingIndexes.concat(otherNonDrivable);
+        var blockingIndexes = otherNonDrivable;
 
         //Tweakable Constants
         var sound = false;
@@ -82,6 +81,7 @@
 
         var hazardsMap =  new Array(256);
         var tileCollisionGroup;
+        var tileDestructionGroup;
         var messageCount = 1; //initialize at 1
 
         //initialize array as 0.
@@ -198,6 +198,21 @@
                 otherCarSprite.frame = otherCar.damageArray[otherCar.hits];
 
                 socket.emit("car hit",{});
+
+                if (otherCar.hits == 0) {
+                    checkWin();
+                }
+
+        }
+
+
+        //called if the bullet hits a building
+        function bulletBuildingHandler(otherCarSprite, bulletSprite) {
+
+                bulletSprite.kill();
+
+                otherCar.hits--;
+                otherCarSprite.frame = otherCar.damageArray[otherCar.hits];
 
                 if (otherCar.hits == 0) {
                     checkWin();
@@ -369,6 +384,9 @@
                 tileCollisionGroup = game.add.physicsGroup();
                 tileCollisionGroup.enableBody = true;
 
+                tileDestructionGroup = game.add.physicsGroup();
+                tileDestructionGroup.enableBody = true;
+				
                 for (var y=0; y<mapHeight; y++) {
                     for (var x=0; x<mapWidth; x++) {
                         var frame = map1[x+y*mapWidth]-1;//minus 1 since tool increases indexes by 1
@@ -378,6 +396,9 @@
 
                         if (blockingIndexes.indexOf(frame)>=0) {
                             tileCollisionGroup.add(tile);
+                        }
+                        if (buildingIndexes.indexOf(frame)>=0) {
+                            tileDestructionGroup.add(tile);
                         }
 
                         //insert hazard if appropriate
@@ -394,6 +415,13 @@
                 tileCollisionGroup.setAll('body.collideWorldBounds', true);
                 tileCollisionGroup.setAll('body.immovable', true);
                 tileCollisionGroup.setAll('body.moves', false);
+
+                game.physics.arcade.enable(tileDestructionGroup, Phaser.Physics.ARCADE);
+
+                tileDestructionGroup.setAll('body.collideWorldBounds', true);
+                tileDestructionGroup.setAll('body.immovable', true);
+                tileDestructionGroup.setAll('body.moves', false);
+                tileDestructionGroup.setAll('body.bounce', 1, 1);
 
                 //my car
                 myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
@@ -440,6 +468,7 @@
                     b.visible = false;
                     b.checkWorldBounds = true;
                     b.body.setSize(5,5,35,26);
+                    b.body.bounce.set(1);
                     b.events.onOutOfBounds.add(resetBullet, this);
                     b.frame = bulletFrame;
                 }
@@ -492,8 +521,9 @@
                         emitMessages = true;
                     }
                     game.physics.arcade.collide(myCarSprite, tileCollisionGroup);
+                    game.physics.arcade.collide(myCarSprite, tileDestructionGroup);
+                    game.physics.arcade.collide(myBullets, tileDestructionGroup);
                     game.physics.arcade.collide(myCarSprite, otherCarSprite);
-                    game.physics.arcade.overlap(myBullets, otherCarSprite, bulletHandler, null, this);
 
                     var carTurned = false;
 
@@ -615,3 +645,4 @@
 
 </body>
 </html>
+<body>
