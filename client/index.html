@@ -46,7 +46,7 @@
         var blockingIndexes = otherNonDrivable;
 
         //Tweakable Constants
-        var sound = false;
+        var sound = true;
 
         var waterTime = 3;
         var waterImmunityTime = 5;
@@ -199,6 +199,12 @@
                     game.physics.arcade.velocityFromRotation(myCarSprite.rotation, 400, bullet.body.velocity);
                     bulletTime = game.time.now + bulletCooldownTime;
 
+                    var gunshotAudio = game.add.audio('gunshot');
+                    splashMusic.volume = 1.0;
+                    if (sound) {
+                        splashMusic.play();
+                    }
+
                     bullet.events.onKilled.add(function() {this.x=0;this.y=0;this.visible =false;},this);
                 }
             }
@@ -254,6 +260,9 @@
                 text.anchor.set(0.5);
 
                 gameOver = true;
+
+                gameMusic.loop = false;
+                gameMusic.stop();
             }
         }
 
@@ -273,8 +282,10 @@
             preload: function() {
                 this.game.load.image("splash","splash-screen.jpg");
                 this.game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
-                this.game.load.audio('splashMusic', 'AbstractBeat.wav');
-                this.game.load.audio('gameMusic', 'DNB1_130.wav');
+                this.game.load.audio('splashMusic', 'sounds/Splash_Music.mp3');
+                this.game.load.audio('gameMusic', 'sounds/Map_Music.mp3');
+                this.game.load.audio('gunshot','sounds/Gun_shot.mp3');
+                this.game.load.audio('carBoom','sounds/Car_Explosion.mp3');
             },
             create: function() {
                 socket = io.connect("http://"+location.hostname+":8000", {transports: ["websocket"]});
@@ -519,15 +530,11 @@
                 game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR ]);
 
                 gameMusic = this.game.add.audio('gameMusic');
-                gameMusic.volume = 0.8;
+                gameMusic.volume = 0.7;
                 gameMusic.loop = true;
                 if (sound) {
                     gameMusic.play();
                 }
-
-                //gameMusic.loop = false;
-                //gameMusic.stop();
-
             },
             update: function() {
                 if (gameOver) {
