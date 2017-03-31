@@ -33,6 +33,8 @@
 
 
         //Tweakable Constants
+        var sound = false;
+
         var waterTime = 3;
         var waterImmunityTime = 5;
 
@@ -49,6 +51,8 @@
 
         var myCarSprite;
         var otherCarSprite;
+        var splashMusic;
+        var gameMusic;
 
         var hazardsMap =  new Array(256);
 
@@ -141,6 +145,8 @@
             preload: function() {
                 this.game.load.image("splash","splash-screen.jpg");
                 this.game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
+                this.game.load.audio('splashMusic', 'AbstractBeat.wav');
+                this.game.load.audio('gameMusic', 'DNB1_130.wav');
             },
             create: function() {
                 socket = io.connect("http://"+location.hostname+":8000", {transports: ["websocket"]});
@@ -183,11 +189,20 @@
 
         splash.prototype = {
             create: function() {
-
                 var splashImage = this.game.add.button(game.world.centerX, game.world.centerY, "splash",this.connect,this);
                 splashImage.anchor.setTo(0.5, 0.5);
+
+                splashMusic = this.game.add.audio('splashMusic');
+                splashMusic.volume = 0.8;
+                splashMusic.loop = true;
+                if (sound) {
+                    splashMusic.play();
+                }
             },
             connect: function() {
+                splashMusic.loop = false;
+                splashMusic.stop();
+
                 this.game.state.start("WaitingToConnect");
             }
         }
@@ -258,6 +273,17 @@
                 otherCarSprite.body.collideWorldBounds = true;
 
                 cursors = game.input.keyboard.createCursorKeys();
+
+                gameMusic = this.game.add.audio('gameMusic');
+                gameMusic.volume = 0.8;
+                gameMusic.loop = true;
+                if (sound) {
+                    gameMusic.play();
+                }
+
+                //gameMusic.loop = false;
+                //gameMusic.stop();
+
             },
             update: function() {
                 var carTurned = false;
