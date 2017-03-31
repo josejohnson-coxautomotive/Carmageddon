@@ -153,8 +153,6 @@
         boot.prototype = {
             preload: function() {
                 this.game.load.image("splash","splash-screen.jpg");
-                this.game.load.image("redCar","redCar.png");
-                this.game.load.image("orangeCar","orangeCar.png");
                 this.game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
                 this.game.load.audio('splashMusic', 'AbstractBeat.wav');
                 this.game.load.audio('gameMusic', 'DNB1_130.wav');
@@ -273,9 +271,8 @@
                 tileCollisionGroup.setAll('body.moves', false);
 
                 //my car
-                //myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
-                //myCarSprite.frame = myCar.frame;
-                myCarSprite = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
+                myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
+                myCarSprite.frame = myCar.frame;
 
                 myCarSprite.anchor.setTo(0.5, 0.5);
 
@@ -287,12 +284,11 @@
                 myCarSprite.body.maxVelocity.setTo(400,400);
                 myCarSprite.body.collideWorldBounds = true;
 
-                myCarSprite.body.setSize(52,26);
+                myCarSprite.body.setSize(50,25,25,16);
 
                 //otherCar
-                //otherCarSprite = game.add.sprite(otherCar.x,otherCar.y, 'gameSprites');
-                //otherCarSprite.frame = otherCar.frame;
-                otherCarSprite = game.add.sprite(game.world.centerX,game.world.centerY, 'orangeCar');
+                otherCarSprite = game.add.sprite(otherCar.x,otherCar.y, 'gameSprites');
+                otherCarSprite.frame = otherCar.frame;
 
                 otherCarSprite.anchor.setTo(0.5, 0.5);
 
@@ -303,6 +299,8 @@
                 myCarSprite.enableBody = true;
                 otherCarSprite.body.maxVelocity.setTo(400,400);
                 otherCarSprite.body.collideWorldBounds = true;
+                otherCarSprite.body.setSize(50,25,25,16);
+
                 //OK - only other client should move its car or they will be out of sync - if we want to allow pushing - need to send message
                 //to other client
                 otherCarSprite.body.immovable = true;
