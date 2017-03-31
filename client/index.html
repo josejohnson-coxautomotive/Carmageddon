@@ -27,6 +27,8 @@
         var grassFrame = 65;
         var fountainFrame = 209;
 
+        var bulletFrame = 194;
+
         //actual frame numbers for hazards
         var waterHazard = 192;
         var potholeHazard = 193;
@@ -52,6 +54,9 @@
         var gravelTime = 3;
         var gravelImmunityTime = 5;
 
+        var bulletPoolSize = 20;
+        var bulletCooldownTime = 250;
+
         //  States
         var socket;
         var myCar;
@@ -61,6 +66,10 @@
         var otherCarSprite;
         var splashMusic;
         var gameMusic;
+        var spaceKey;
+
+        var myBullets;
+        var bulletTime = 0;
 
         var hazardsMap =  new Array(256);
         var tileCollisionGroup;
@@ -148,6 +157,30 @@
             myCar.gravelImmunity = false;
         }
 
+        function fireBullet () {
+
+            if (game.time.now > bulletTime)
+            {
+                var bullet = myBullets.getFirstExists(false);
+
+                if (bullet)
+                {
+                    bullet.reset(myCarSprite.x + 80, myCarSprite.y - 80);
+                    bullet.body.velocity.y = -300;
+                    bulletTime = game.time.now + bulletCooldownTime;
+                }
+            }
+
+        }
+
+        //  Called if the bullet goes out of the screen
+        function resetBullet (bullet) {
+
+            bullet.kill();
+
+        }
+
+        //Start game states
         var boot = function(game) {}
 
         boot.prototype = {
@@ -251,7 +284,6 @@
                         tile.frame = frame;
 
                         if (blockingIndexes.indexOf(frame)>=0) {
-                            //alert("x:"+x+ " y:"+y+ " frame:"+frame);
                             tileCollisionGroup.add(tile);
                         }
 
@@ -301,6 +333,22 @@
                 otherCarSprite.body.collideWorldBounds = true;
                 otherCarSprite.body.setSize(50,25,25,16);
 
+                myBullets = game.add.group();
+                myBullets.enableBody = true;
+                myBullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+                for (var i = 0; i < bulletPoolSize; i++)
+                {
+                    var b = myBullets.create(0, 0, 'gameSprites');
+                    b.name = 'bullet' + i;
+                    b.exists = false;
+                    b.visible = false;
+                    b.checkWorldBounds = true;
+                    b.body.setSize(5,5,35,26);
+                    b.events.onOutOfBounds.add(resetBullet, this);
+                    b.frame = bulletFrame;
+                }
+
                 //OK - only other client should move its car or they will be out of sync - if we want to allow pushing - need to send message
                 //to other client
                 otherCarSprite.body.immovable = true;
@@ -308,6 +356,11 @@
                 otherCarSprite.body.setSize(52,26);
 
                 cursors = game.input.keyboard.createCursorKeys();
+
+                spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+                //  Stop the following keys from propagating up to the browser
+                game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR ]);
 
                 gameMusic = this.game.add.audio('gameMusic');
                 gameMusic.volume = 0.8;
@@ -355,6 +408,11 @@
                     if (currentSpeed != 0) {
                         currentSpeed = currentSpeed/1.2;
                     }
+                }
+
+                if (spaceKey.isDown)
+                {
+                    fireBullet();
                 }
 
                 if (myCar.gravel) {
