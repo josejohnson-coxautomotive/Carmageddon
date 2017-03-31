@@ -75,6 +75,7 @@
         var spaceKey;
 
         var myBullets;
+        var otherBullets;
         var bulletTime = 0;
 
         var gameOver = false;
@@ -191,10 +192,12 @@
         //called if the bullet hits the other car
         function bulletHandler(otherCarSprite, bulletSprite) {
 
-                bulletSprite.kill();
+                resetBullet(bulletSprite);
 
                 otherCar.hits--;
                 otherCarSprite.frame = otherCar.damageArray[otherCar.hits];
+
+                socket.emit("car hit",{});
 
                 if (otherCar.hits == 0) {
                     checkWin();
@@ -226,6 +229,8 @@
         //  Called if the bullet goes out of the screen
         function resetBullet (bullet) {
 
+            bullet.x = 0;
+            bullet.y = 0;
             bullet.kill();
 
         }
@@ -284,6 +289,31 @@
                     otherCarSprite.x = data.x;
                     otherCarSprite.y = data.y;
                     otherCarSprite.rotation = data.rotation;
+                });
+
+                socket.on("move bullets", function(data) {
+
+                    if (typeof otherBullets !== 'undefined') {
+                        //loop through message and set other bullets to appropriate positions
+                        for (var i=0;i<data.bulletList.length;i++) { // will be all 20
+                            if (data.bulletList[i].x==0&&data.bulletList[i].y==0) {
+                                otherBullets.children[i].x = 0;
+                                otherBullets.children[i].y = 0;
+                                otherBullets.children[i].kill();
+                            } else {
+                                otherBullets.children[i].reset(data.bulletList[i].x, data.bulletList[i].y);
+                            }
+                        }
+                    }
+                });
+
+                socket.on("car hit", function() {
+                    myCar.hits--;
+                    myCarSprite.frame = myCar.damageArray[myCar.hits];
+
+                    if (myCar.hits == 0) {
+                        checkWin();
+                    }
                 });
 
                 this.game.state.start("Splash");
@@ -414,6 +444,20 @@
                     b.frame = bulletFrame;
                 }
 
+                //no physics - other client handles their bullets
+                otherBullets = game.add.group();
+
+                for (var i = 0; i < bulletPoolSize; i++)
+                {
+                    var b = otherBullets.create(0, 0, 'gameSprites');
+                    b.name = 'bullet' + i;
+                    b.anchor.x = 0.5;
+                    b.anchor.y = 0.5;
+                    b.exists = false;
+                    b.visible = false;
+                    b.frame = bulletFrame;
+                }
+
                 //OK - only other client should move its car or they will be out of sync - if we want to allow pushing - need to send message
                 //to other client
                 otherCarSprite.body.immovable = true;
@@ -524,6 +568,27 @@
                     game.physics.arcade.velocityFromRotation(myCarSprite.rotation, currentSpeed, myCarSprite.body.velocity);
 
                     if (emitMessages) {
+                        //move my bullets
+                        var bulletMessage = {};
+                        var bullets =  new Array();
+
+                        for (var i=0;i<bulletPoolSize;i++) {
+                            var b = myBullets.children[i];
+
+                            var bulletItem = {};
+
+                            bulletItem.id = i;
+                            bulletItem.x = b.x;
+                            bulletItem.y = b.y;
+
+                            bullets.push(bulletItem);
+                        }
+
+                        bulletMessage.bulletList = bullets;
+
+                        socket.emit("move bullets", bulletMessage);
+
+                        //move my car
                         if (currentSpeed != 0 || carTurned) {
                             socket.emit("move player", {x: myCarSprite.x, y: myCarSprite.y, rotation: myCarSprite.rotation});
                         }

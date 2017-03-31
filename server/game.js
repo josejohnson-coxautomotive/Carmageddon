@@ -49,6 +49,10 @@ function onSocketConnection(client) {
 
 	// Listen for move player message
 	client.on("move player", onMovePlayer);
+
+	client.on("move bullets", onMoveBullets);
+
+    client.on("car hit", onCarHit);
 };
 
 // Socket client has disconnected
@@ -135,6 +139,18 @@ function onMovePlayer(data) {
 	// Broadcast updated position to connected socket clients
 	this.broadcast.emit("move player", {id: movePlayer.id, x: movePlayer.x, y: movePlayer.y, rotation: movePlayer.rotation});
 };
+
+//Bullets have moved
+function onMoveBullets(data) {
+	//just transmit this to the other player
+	this.broadcast.emit("move bullets",data);
+}
+
+//car hit
+function onCarHit(data) {
+    //just transmit this to the other player
+    this.broadcast.emit("car hit",data);
+}
 
 
 /**************************************************
