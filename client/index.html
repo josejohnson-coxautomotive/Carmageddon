@@ -524,6 +524,7 @@
                     game.physics.arcade.collide(myCarSprite, tileDestructionGroup);
                     game.physics.arcade.collide(myBullets, tileDestructionGroup);
                     game.physics.arcade.collide(myCarSprite, otherCarSprite);
+                    game.physics.arcade.collide(myBullets, otherCarSprite, bulletHandler, null, this);
 
                     var carTurned = false;
 
