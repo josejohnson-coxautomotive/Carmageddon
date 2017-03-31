@@ -37,7 +37,11 @@
         var steelIndexes = [2,3,18,19,34,35,36,50,51,52,66,67,68,82,83,98,99,114,115,130,131,132,146,147,148,162,163,164, 178,179,180];
         var woodIndexes = [5,6,21,22,37,38,39,53,54,55,69,70,71,85,86,101,102,117,118,133,134,135,149,150,151,165,166,167,181,182,183];
         var brickIndexes = [8,9,24,25,40,41,42,56,57,58,67,68,72,73,74,88,89,104,105,120,121,136,137,138,152,153,154,168,169,170,184,185,186];
-        var otherNonDrivable = [grassFrame, fountainFrame];
+
+        var blueCarDamageArray = [48,32,16,0];
+        var redCarDamageArray = [49,33,17,1];
+
+        var otherNonDrivable = [fountainFrame];
 
         var buildingIndexes = steelIndexes.concat(woodIndexes).concat(brickIndexes);
         var blockingIndexes = buildingIndexes.concat(otherNonDrivable);
@@ -57,6 +61,8 @@
         var bulletPoolSize = 20;
         var bulletCooldownTime = 400;
 
+        var messageThrottling = 1; //loop messages and on send every x message; - always send message for now.
+
         //  States
         var socket;
         var myCar;
@@ -71,8 +77,11 @@
         var myBullets;
         var bulletTime = 0;
 
+        var gameOver = false;
+
         var hazardsMap =  new Array(256);
         var tileCollisionGroup;
+        var messageCount = 1; //initialize at 1
 
         //initialize array as 0.
         for (var i=0;i<256;i++) {
@@ -99,6 +108,8 @@
             var car;
             var x = xPos;
             var y = yPos;
+            var hits = 3; //initialize hits to 3 for now
+            var damageArray;
             var rotation = rotationStart;
             var frame = frame;
             var water = false;
@@ -114,6 +125,8 @@
                 car: car,
                 x: x,
                 y: y,
+                hits: hits,
+                damageArray: damageArray,
                 rotation: rotation,
                 frame: frame,
                 water: water,
@@ -176,11 +189,38 @@
         }
 
         //called if the bullet hits the other car
-        function bulletHandler(otherCar, bullet) {
+        function bulletHandler(otherCarSprite, bulletSprite) {
 
-                bullet.kill();
-                alert('Bam!');
+                bulletSprite.kill();
 
+                otherCar.hits--;
+                otherCarSprite.frame = otherCar.damageArray[otherCar.hits];
+
+                if (otherCar.hits == 0) {
+                    checkWin();
+                }
+
+        }
+
+        function checkWin() {
+            if (myCar.hits == 0 || otherCar.hits == 0) {
+                var text = "";
+                //game is over/
+                if (myCar.hits == 0 && otherCar.hits == 0) {
+                    text = "Game was tied."
+                }
+
+                if (myCar.hits == 0) {
+                    text = "You have been defeated";
+                } else {
+                    text = "You are victorious";
+                }
+
+                var text = game.add.text(game.world.centerX, game.world.centerY, text, { font: "65px Arial", fill: "#ffffff", align: "center" });
+                text.anchor.set(0.5);
+
+                gameOver = true;
+            }
         }
 
         //  Called if the bullet goes out of the screen
@@ -216,11 +256,24 @@
                 socket.on("starting info", function(data) {
                     myCar = new Player(data.x, data.y, data.rotation, data.frame);
                     myCar.id = data.id;
+
+                    if (data.frame == 0) {
+                        myCar.damageArray = blueCarDamageArray;
+                    } else {
+                        myCar.damageArray = redCarDamageArray;
+                    }
                 });
 
                 // New player message received
                 socket.on("new player", function(data) {
                     otherCar = new Player(data.x, data.y, data.rotation, data.frame);
+
+                    if (data.frame == 0) {
+                        otherCar.damageArray = blueCarDamageArray;
+                    } else {
+                        otherCar.damageArray = redCarDamageArray;
+                    }
+
                     otherCar.id = data.id;
 
                     game.state.start("TheGame");
@@ -386,89 +439,98 @@
 
             },
             update: function() {
-                game.physics.arcade.collide(myCarSprite, tileCollisionGroup);
-                game.physics.arcade.collide(myCarSprite, otherCarSprite);
-                game.physics.arcade.overlap(myBullets, otherCarSprite, bulletHandler, null, this);
+                if (gameOver) {
+                    //skip update
+                } else {
+                    var emitMessages = false;
 
-                var carTurned = false;
-
-                if (cursors.left.isDown)
-                {
-                    myCarSprite.angle -= 4;
-                    carTurned = true;
-                }
-                else if (cursors.right.isDown)
-                {
-                    myCarSprite.angle += 4;
-                    carTurned = true;
-                }
-
-                else if (cursors.up.isDown)
-                {
-                    if (!myCar.pothole) {
-                        //  The speed we will travel at
-                        currentSpeed = 300;
+                    if (messageCount == messageThrottling) {
+                        emitMessages = true;
                     }
-                }
-                else if (cursors.down.isDown)
-                {
-                    if (!myCar.pothole) {
-                        //  The speed we will travel at
-                        currentSpeed = -160;
+                    game.physics.arcade.collide(myCarSprite, tileCollisionGroup);
+                    game.physics.arcade.collide(myCarSprite, otherCarSprite);
+                    game.physics.arcade.overlap(myBullets, otherCarSprite, bulletHandler, null, this);
+
+                    var carTurned = false;
+
+                    if (cursors.left.isDown) {
+                        myCarSprite.angle -= 4;
+                        carTurned = true;
                     }
-                }
-                else {
-                    if (currentSpeed != 0) {
-                        currentSpeed = currentSpeed/1.2;
-                    }
-                }
-
-                if (spaceKey.isDown)
-                {
-                    fireBullet();
-                }
-
-                if (myCar.gravel) {
-                    currentSpeed = currentSpeed/2;
-                }
-
-                if (myCar.water) {
-                    myCarSprite.angle += 10;
-                }
-
-                if (hazardsMap[calculateCarPos(myCarSprite)]) {
-                    var hazard = hazardsMap[calculateCarPos(myCarSprite)];
-
-                    if (hazard == waterHazard && myCar.waterImmunity == false) {
-                        myCar.water = true;
-                        myCar.waterImmunity = true;
-
-                        game.time.events.add(Phaser.Timer.SECOND*waterTime, clearWater, this);
-                        game.time.events.add(Phaser.Timer.SECOND*waterImmunityTime, clearWaterImmunity, this);
+                    else if (cursors.right.isDown) {
+                        myCarSprite.angle += 4;
+                        carTurned = true;
                     }
 
-                    if (hazard == potholeHazard && myCar.potholeImmunity == false) {
-                        currentSpeed = 0;
-                        myCar.pothole = true;
-                        myCar.potholeImmunity = true;
-
-                        game.time.events.add(Phaser.Timer.SECOND*potholeTime, clearPothole, this);
-                        game.time.events.add(Phaser.Timer.SECOND*potholeImmunityTime, clearPotholeImmunity, this);
+                    else if (cursors.up.isDown) {
+                        if (!myCar.pothole) {
+                            //  The speed we will travel at
+                            currentSpeed = 300;
+                        }
+                    }
+                    else if (cursors.down.isDown) {
+                        if (!myCar.pothole) {
+                            //  The speed we will travel at
+                            currentSpeed = -160;
+                        }
+                    }
+                    else {
+                        if (currentSpeed != 0) {
+                            currentSpeed = currentSpeed / 1.2;
+                        }
                     }
 
-                    if (hazard == gravelHazard && myCar.gravelImmunity == false) {
-                        myCar.gravel = true;
-                        myCar.gravelImmunity = true;
-
-                        game.time.events.add(Phaser.Timer.SECOND*gravelTime, clearGravel, this);
-                        game.time.events.add(Phaser.Timer.SECOND*gravelImmunityTime, clearGravelImmunity, this);
+                    if (spaceKey.isDown) {
+                        fireBullet();
                     }
-                }
 
-                game.physics.arcade.velocityFromRotation(myCarSprite.rotation, currentSpeed, myCarSprite.body.velocity);
+                    if (myCar.gravel) {
+                        currentSpeed = currentSpeed / 2;
+                    }
 
-                if (currentSpeed != 0 || carTurned) {
-                    socket.emit("move player", {x: myCarSprite.x, y: myCarSprite.y, rotation: myCarSprite.rotation});
+                    if (myCar.water) {
+                        myCarSprite.angle += 10;
+                    }
+
+                    if (hazardsMap[calculateCarPos(myCarSprite)]) {
+                        var hazard = hazardsMap[calculateCarPos(myCarSprite)];
+
+                        if (hazard == waterHazard && myCar.waterImmunity == false) {
+                            myCar.water = true;
+                            myCar.waterImmunity = true;
+
+                            game.time.events.add(Phaser.Timer.SECOND * waterTime, clearWater, this);
+                            game.time.events.add(Phaser.Timer.SECOND * waterImmunityTime, clearWaterImmunity, this);
+                        }
+
+                        if (hazard == potholeHazard && myCar.potholeImmunity == false) {
+                            currentSpeed = 0;
+                            myCar.pothole = true;
+                            myCar.potholeImmunity = true;
+
+                            game.time.events.add(Phaser.Timer.SECOND * potholeTime, clearPothole, this);
+                            game.time.events.add(Phaser.Timer.SECOND * potholeImmunityTime, clearPotholeImmunity, this);
+                        }
+
+                        if (hazard == gravelHazard && myCar.gravelImmunity == false) {
+                            myCar.gravel = true;
+                            myCar.gravelImmunity = true;
+
+                            game.time.events.add(Phaser.Timer.SECOND * gravelTime, clearGravel, this);
+                            game.time.events.add(Phaser.Timer.SECOND * gravelImmunityTime, clearGravelImmunity, this);
+                        }
+                    }
+
+                    game.physics.arcade.velocityFromRotation(myCarSprite.rotation, currentSpeed, myCarSprite.body.velocity);
+
+                    if (emitMessages) {
+                        if (currentSpeed != 0 || carTurned) {
+                            socket.emit("move player", {x: myCarSprite.x, y: myCarSprite.y, rotation: myCarSprite.rotation});
+                        }
+                        messageCount = 0;
+                    } else {
+                        messageCount++;
+                    }
                 }
             }
         }
