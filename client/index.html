@@ -55,7 +55,7 @@
         var gravelImmunityTime = 5;
 
         var bulletPoolSize = 20;
-        var bulletCooldownTime = 250;
+        var bulletCooldownTime = 400;
 
         //  States
         var socket;
@@ -165,11 +165,21 @@
 
                 if (bullet)
                 {
-                    bullet.reset(myCarSprite.x + 80, myCarSprite.y - 80);
-                    bullet.body.velocity.y = -300;
+                    bullet.reset(myCarSprite.body.x + 16, myCarSprite.body.y + 16);
+                    bullet.lifespan = 2000;
+                    bullet.rotation = myCarSprite.rotation;
+                    game.physics.arcade.velocityFromRotation(myCarSprite.rotation, 400, bullet.body.velocity);
                     bulletTime = game.time.now + bulletCooldownTime;
                 }
             }
+
+        }
+
+        //called if the bullet hits the other car
+        function bulletHandler(otherCar, bullet) {
+
+                bullet.kill();
+                alert('Bam!');
 
         }
 
@@ -341,6 +351,8 @@
                 {
                     var b = myBullets.create(0, 0, 'gameSprites');
                     b.name = 'bullet' + i;
+                    b.anchor.x = 0.5;
+                    b.anchor.y = 0.5;
                     b.exists = false;
                     b.visible = false;
                     b.checkWorldBounds = true;
@@ -376,6 +388,7 @@
             update: function() {
                 game.physics.arcade.collide(myCarSprite, tileCollisionGroup);
                 game.physics.arcade.collide(myCarSprite, otherCarSprite);
+                game.physics.arcade.overlap(myBullets, otherCarSprite, bulletHandler, null, this);
 
                 var carTurned = false;
 
