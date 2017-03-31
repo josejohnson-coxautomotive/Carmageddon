@@ -25,12 +25,20 @@
 
         //frame id's for reference
         var grassFrame = 65;
+        var fountainFrame = 209;
 
         //actual frame numbers for hazards
         var waterHazard = 192;
         var potholeHazard = 193;
         var gravelHazard = 208;
 
+        var steelIndexes = [2,3,18,19,34,35,36,50,51,52,66,67,68,82,83,98,99,114,115,130,131,132,146,147,148,162,163,164, 178,179,180];
+        var woodIndexes = [5,6,21,22,37,38,39,53,54,55,69,70,71,85,86,101,102,117,118,133,134,135,149,150,151,165,166,167,181,182,183];
+        var brickIndexes = [8,9,24,25,40,41,42,56,57,58,67,68,72,73,74,88,89,104,105,120,121,136,137,138,152,153,154,168,169,170,184,185,186];
+        var otherNonDrivable = [grassFrame, fountainFrame];
+
+        var buildingIndexes = steelIndexes.concat(woodIndexes).concat(brickIndexes);
+        var blockingIndexes = buildingIndexes.concat(otherNonDrivable);
 
         //Tweakable Constants
         var sound = false;
@@ -55,6 +63,7 @@
         var gameMusic;
 
         var hazardsMap =  new Array(256);
+        var tileCollisionGroup;
 
         //initialize array as 0.
         for (var i=0;i<256;i++) {
@@ -137,6 +146,14 @@
 
         function clearGravelImmunity() {
             myCar.gravelImmunity = false;
+        }
+
+        function tileProcessHandler(player, tile) {
+            return true;
+        }
+
+        function tileCollisionHandler(player, tile) {
+            //no-op
         }
 
         var boot = function(game) {}
@@ -222,18 +239,29 @@
 
         theGame.prototype = {
             create: function() {
+                //draw background first so they are lowest
+                for (var y=0; y<mapHeight; y++) {
+                    for (var x = 0; x < mapWidth; x++) {
+                        var grassTile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
+                        grassTile.frame = grassFrame;
+                    }
+                }
+
+                //initialize building group
+                tileCollisionGroup = game.add.physicsGroup();
+                tileCollisionGroup.enableBody = true;
+
                 for (var y=0; y<mapHeight; y++) {
                     for (var x=0; x<mapWidth; x++) {
-                        var frame = map1[x+y*mapWidth]-1;
+                        var frame = map1[x+y*mapWidth]-1;//minus 1 since tool increases indexes by 1
 
-                        //if item is not grass - draw grass under it.
-                        if (frame!=grassFrame) {
-                            var grassTile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
-                            grassTile.frame = grassFrame;
+                        var tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
+                        tile.frame = frame;
+
+                        if (blockingIndexes.indexOf(frame)>=0) {
+                            //alert("x:"+x+ " y:"+y+ " frame:"+frame);
+                            tileCollisionGroup.add(tile);
                         }
-
-                        var tile = tile = game.add.sprite(x*tileWidth,y*tileHeight,'gameSprites');
-                        tile.frame = map1[x+y*mapWidth]-1; //minus 1 since tool increases indexes by 1
 
                         //insert hazard if appropriate
                         if (hazardsMap[x+y*mapWidth]>0) {
@@ -243,6 +271,12 @@
                         }
                     }
                 }
+
+                game.physics.arcade.enable(tileCollisionGroup);
+
+                tileCollisionGroup.setAll('body.collideWorldBounds', true);
+                tileCollisionGroup.setAll('body.immovable', true);
+                tileCollisionGroup.setAll('body.moves', false);
 
                 //my car
                 myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
@@ -255,6 +289,7 @@
                 myCarSprite.y = myCar.y;
 
                 game.physics.enable(myCarSprite, Phaser.Physics.ARCADE);
+                myCarSprite.enableBody = true;
                 myCarSprite.body.maxVelocity.setTo(400,400);
                 myCarSprite.body.collideWorldBounds = true;
 
@@ -269,6 +304,7 @@
                 otherCarSprite.y = otherCar.y;
 
                 game.physics.enable(otherCarSprite, Phaser.Physics.ARCADE);
+                myCarSprite.enableBody = true;
                 otherCarSprite.body.maxVelocity.setTo(400,400);
                 otherCarSprite.body.collideWorldBounds = true;
 
@@ -286,6 +322,8 @@
 
             },
             update: function() {
+                game.physics.arcade.collide(myCarSprite, tileCollisionGroup, tileProcessHandler, tileProcessHandler, this);
+
                 var carTurned = false;
 
                 if (cursors.left.isDown)
