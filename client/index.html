@@ -292,6 +292,7 @@
                 this.game.load.audio('gameMusic', 'sounds/Map_Music.mp3');
                 this.game.load.audio('gunshot','sounds/Gun_shot.mp3');
                 this.game.load.audio('carBoom','sounds/Car_Explosion.mp3');
+                this.game.load.audio('bulletBounce','sounds/Ricochet.mp3');
             },
             create: function() {
                 socket = io.connect("http://"+location.hostname+":8000", {transports: ["websocket"]});
