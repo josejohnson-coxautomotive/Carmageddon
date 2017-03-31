@@ -303,6 +303,9 @@
                 myCarSprite.enableBody = true;
                 otherCarSprite.body.maxVelocity.setTo(400,400);
                 otherCarSprite.body.collideWorldBounds = true;
+                //OK - only other client should move its car or they will be out of sync - if we want to allow pushing - need to send message
+                //to other client
+                otherCarSprite.body.immovable = true;
 
                 otherCarSprite.body.setSize(52,26);
 
@@ -321,6 +324,7 @@
             },
             update: function() {
                 game.physics.arcade.collide(myCarSprite, tileCollisionGroup);
+                game.physics.arcade.collide(myCarSprite, otherCarSprite);
 
                 var carTurned = false;
 
