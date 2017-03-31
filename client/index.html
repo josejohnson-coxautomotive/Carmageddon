@@ -148,19 +148,13 @@
             myCar.gravelImmunity = false;
         }
 
-        function tileProcessHandler(player, tile) {
-            return true;
-        }
-
-        function tileCollisionHandler(player, tile) {
-            //no-op
-        }
-
         var boot = function(game) {}
 
         boot.prototype = {
             preload: function() {
                 this.game.load.image("splash","splash-screen.jpg");
+                this.game.load.image("redCar","redCar.png");
+                this.game.load.image("orangeCar","orangeCar.png");
                 this.game.load.spritesheet('gameSprites', 'Sprites.png', 75, 57);
                 this.game.load.audio('splashMusic', 'AbstractBeat.wav');
                 this.game.load.audio('gameMusic', 'DNB1_130.wav');
@@ -279,10 +273,10 @@
                 tileCollisionGroup.setAll('body.moves', false);
 
                 //my car
-                myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
-                myCarSprite.frame = myCar.frame;
+                //myCarSprite = game.add.sprite(myCar.x,myCar.y, 'gameSprites');
+                //myCarSprite.frame = myCar.frame;
+                myCarSprite = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
 
-                //car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
                 myCarSprite.anchor.setTo(0.5, 0.5);
 
                 myCarSprite.x = myCar.x;
@@ -293,11 +287,13 @@
                 myCarSprite.body.maxVelocity.setTo(400,400);
                 myCarSprite.body.collideWorldBounds = true;
 
-                //otherCar
-                otherCarSprite = game.add.sprite(otherCar.x,otherCar.y, 'gameSprites');
-                otherCarSprite.frame = otherCar.frame;
+                myCarSprite.body.setSize(52,26);
 
-                //car = game.add.sprite(game.world.centerX,game.world.centerY, 'redCar');
+                //otherCar
+                //otherCarSprite = game.add.sprite(otherCar.x,otherCar.y, 'gameSprites');
+                //otherCarSprite.frame = otherCar.frame;
+                otherCarSprite = game.add.sprite(game.world.centerX,game.world.centerY, 'orangeCar');
+
                 otherCarSprite.anchor.setTo(0.5, 0.5);
 
                 otherCarSprite.x = otherCar.x;
@@ -307,6 +303,8 @@
                 myCarSprite.enableBody = true;
                 otherCarSprite.body.maxVelocity.setTo(400,400);
                 otherCarSprite.body.collideWorldBounds = true;
+
+                otherCarSprite.body.setSize(52,26);
 
                 cursors = game.input.keyboard.createCursorKeys();
 
@@ -322,7 +320,7 @@
 
             },
             update: function() {
-                game.physics.arcade.collide(myCarSprite, tileCollisionGroup, tileProcessHandler, tileProcessHandler, this);
+                game.physics.arcade.collide(myCarSprite, tileCollisionGroup);
 
                 var carTurned = false;
 
