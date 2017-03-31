@@ -545,7 +545,13 @@
             },
             update: function() {
                 if (gameOver) {
-                    //skip update
+                    if (game.input.activePointer.isDown)
+                    {
+                        socket.disconnect();
+                        gameOver = false;
+                        this.game.state.start("Boot");
+
+                    }
                 } else {
                     var emitMessages = false;
 
