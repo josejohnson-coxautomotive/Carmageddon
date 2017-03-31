@@ -184,6 +184,8 @@
                     bullet.rotation = myCarSprite.rotation;
                     game.physics.arcade.velocityFromRotation(myCarSprite.rotation, 400, bullet.body.velocity);
                     bulletTime = game.time.now + bulletCooldownTime;
+
+                    bullet.events.onKilled.add(function() {this.x=0;this.y=0;this.visible =false;},this);
                 }
             }
 
@@ -311,9 +313,11 @@
                     if (typeof otherBullets !== 'undefined') {
                         //loop through message and set other bullets to appropriate positions
                         for (var i=0;i<data.bulletList.length;i++) { // will be all 20
+
                             if (data.bulletList[i].x==0&&data.bulletList[i].y==0) {
                                 otherBullets.children[i].x = 0;
                                 otherBullets.children[i].y = 0;
+                                otherBullets.children[i].visible = false;
                                 otherBullets.children[i].kill();
                             } else {
                                 otherBullets.children[i].reset(data.bulletList[i].x, data.bulletList[i].y);
